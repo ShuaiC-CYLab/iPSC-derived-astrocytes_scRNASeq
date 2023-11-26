@@ -1,0 +1,44 @@
+setwd("/media/black/Data4/YiRan_2nd/Matrix/Figure2/2023.09.08")
+dir.create("./20231125")
+setwd("./20231125/")
+library(Seurat)
+library(Cairo)
+library(do)
+library(ggpubr)
+library(dplyr)
+seu_data <- readRDS("/media/black/Data4/YiRan_2nd/Matrix/Figure2/2023.09.08/data_merge.CCA.rds")
+seu_data$Condition <- Replace(seu_data$Condition, from = "M", to = "Monoclonal iPSC1")
+seu_data$Condition <- Replace(seu_data$Condition, from = "P", to = "iPSC1")
+seu_data$Condition <- Replace(seu_data$Condition, from = "E", to = "iPSC2")
+
+
+## CellLine Idents----
+Idents(seu_data) <- seu_data$Condition
+av_exp <- AggregateExpression(seu_data)
+av_exp <- av_exp$RNA
+av_exp <- as.data.frame(av_exp)
+cor_exp <- as.data.frame(cor(av_exp))
+cor_exp$x <- rownames(cor_exp)
+cor_df <- tidyr::gather(cor_exp, y, correlation, c('Monoclonal iPSC1','iPSC1','iPSC2'))
+group_order <- c("Monoclonal iPSC1","iPSC1","iPSC2")
+cor_df$x <- factor(cor_df$x, levels = group_order)
+cor_df$y <- factor(cor_df$y, levels = group_order)
+CairoPNG("Correlation.png", height = 2000, width = 2500, res = 300)
+ggplot(cor_df, aes(x, y, fill = correlation)) +
+  geom_tile(color = "grey", size = 1) +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 14, face = "bold"),
+    axis.text.y = element_text(size = 14, face = "bold"),
+    legend.key = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+  ) + 
+  geom_text(aes(label = round(correlation, 4)), color = "black") +
+  scale_fill_gradient(low = "white", high = "red", name = "Correlation")
+dev.off()
